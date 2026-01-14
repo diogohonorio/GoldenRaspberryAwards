@@ -9,10 +9,12 @@ namespace GoldenRaspberryAwards.Api.Controllers
     public class ProducerController : ControllerBase
     {
         private readonly GetProducersIntervalsHandler _handler;
+        private readonly ILogger<ProducerController> _logger;
 
-        public ProducerController(GetProducersIntervalsHandler handler)
+        public ProducerController(GetProducersIntervalsHandler handler, ILogger<ProducerController> logger)
         {
             _handler = handler;
+            _logger = logger;
         }
 
         [HttpGet("intervals")]
@@ -25,9 +27,12 @@ namespace GoldenRaspberryAwards.Api.Controllers
 
                 return Ok(result);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                _logger.LogError(ex, "Error processing GET /api/producers/intervals");
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { Message = "An error occurred while processing the request." });
             }
         }
     }
