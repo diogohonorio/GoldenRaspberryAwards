@@ -21,10 +21,13 @@ git clone https://github.com/diogohonorio/GoldenRaspberryAwards.git
 - Set `GoldenRaspberryAwards.Api` as the startup project.
 - Press F5 (or Ctrl+F5) to run.
 - Use the Test Explorer to run the tests.
-- Or open a terminal in the project's root directory and run the command
+
+
+## Alternative to run the tests
+
+- Open a terminal in the project's root directory.
+- Run the command
 ```bash
 dotnet test
 ```
- 
-
 
