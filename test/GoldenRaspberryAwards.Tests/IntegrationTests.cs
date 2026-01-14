@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace GoldenRaspberryAwards.Tests.Integration
 {
-    public partial class IntegrationTests : IClassFixture<CustomWebApplicationFactory>
+    public class IntegrationTests : IClassFixture<CustomWebApplicationFactory>
     {
         private readonly HttpClient _client;
 
@@ -17,118 +17,81 @@ namespace GoldenRaspberryAwards.Tests.Integration
         [Fact(DisplayName = "GET /api/producers/intervals should return 200 OK")]
         public async Task GetIntervals_ShouldReturn200()
         {
-            // Act
             var response = await _client.GetAsync("/api/producers/intervals");
 
-            // Assert
             response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-            var content = await response.Content.ReadAsStringAsync();
-            content.Should().Contain("min").And.Contain("max");
         }
 
-        [Fact(DisplayName = "GET /api/producers/intervals should return Min and Max")]
-        public async Task GetIntervals_ShouldReturnMinAndMax()
+        [Fact(DisplayName = "GET /api/producers/intervals should return valid API contract")]
+        public async Task GetIntervals_ShouldReturnValidContract()
         {
-            // Act
             var response = await _client.GetAsync("/api/producers/intervals");
             response.EnsureSuccessStatusCode();
 
             var content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(
+                content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            // Assert
-            result.Should().NotBeNull();
-            result!.Min.Should().NotBeNull();
-            result.Max.Should().NotBeNull();
-        }
-
-        [Fact(DisplayName = "GET /api/producers/intervals should return at least one producer in Min and Max")]
-        public async Task GetIntervals_ShouldReturnAtLeastOneProducerInMinAndMax()
-        {
-            // Act
-            var response = await _client.GetAsync("/api/producers/intervals");
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            // Assert
-            result.Should().NotBeNull();
-            result!.Min.Should().NotBeEmpty();
-            result.Max.Should().NotBeEmpty();
-        }
-
-        [Fact(DisplayName = "GET /api/producers/intervals should return valid intervals")]
-        public async Task GetIntervals_ShouldReturnValidIntervals()
-        {
-            // Act
-            var response = await _client.GetAsync("/api/producers/intervals");
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            // Assert
-            result.Should().NotBeNull();
-            result!.Min.Should().NotBeNull();
-            result.Max.Should().NotBeNull();
-
-            foreach (var item in result.Min!)
-            {
-                item.Interval.Should().BeGreaterThanOrEqualTo(0);
-
-                if (!string.IsNullOrWhiteSpace(item.Producer))
-                {
-                    item.Producer.Should().NotBeNullOrWhiteSpace();
-                }
-            }
-
-            foreach (var item in result.Max!)
-            {
-                item.Interval.Should().BeGreaterThanOrEqualTo(0);
-
-                if (!string.IsNullOrWhiteSpace(item.Producer))
-                {
-                    item.Producer.Should().NotBeNullOrWhiteSpace();
-                }
-            }
-        }
-
-        [Fact(DisplayName = "GET /api/producers/intervals should return non-empty min and max lists")]
-        public async Task GetIntervals_ShouldReturnNonEmptyMinAndMaxLists()
-        {
-            // Act
-            var response = await _client.GetAsync("/api/producers/intervals");
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
-
-            // Assert
             result.Should().NotBeNull();
 
             result!.Min.Should().NotBeNull().And.NotBeEmpty();
             result.Max.Should().NotBeNull().And.NotBeEmpty();
 
-            foreach (var item in result.Min)
-                item.Interval.Should().BeGreaterThanOrEqualTo(0);
-
-            foreach (var item in result.Max)
-                item.Interval.Should().BeGreaterThanOrEqualTo(0);
+            result.Min.Concat(result.Max).Should().OnlyContain(item =>
+                item.Interval >= 0 &&
+                item.FollowingWin >= item.PreviousWin &&
+                item.Producer != null
+            );
         }
 
+        [Fact(DisplayName = "Min interval should represent the smallest interval between consecutive awards")]
+        public async Task MinInterval_ShouldBeSmallestInterval()
+        {
+            var response = await _client.GetAsync("/api/producers/intervals");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(
+                content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+            var smallestInterval = result.Min.Min(p => p.Interval);
+
+            result.Min.Should().OnlyContain(p => p.Interval == smallestInterval);
+        }
+
+        [Fact(DisplayName = "Max interval should represent the largest interval between consecutive awards")]
+        public async Task MaxInterval_ShouldBeLargestInterval()
+        {
+            var response = await _client.GetAsync("/api/producers/intervals");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(
+                content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+            var largestInterval = result.Max.Max(p => p.Interval);
+
+            result.Max.Should().OnlyContain(p => p.Interval == largestInterval);
+        }
+
+        [Fact(DisplayName = "Interval should match the difference between followingWin and previousWin")]
+        public async Task Interval_ShouldMatchDifferenceBetweenYears()
+        {
+            var response = await _client.GetAsync("/api/producers/intervals");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<ProducersIntervalResponse>(
+                content,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+            foreach (var item in result.Min.Concat(result.Max))
+            {
+                item.Interval.Should().Be(item.FollowingWin - item.PreviousWin);
+            }
+        }
     }
 }
