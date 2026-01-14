@@ -16,10 +16,18 @@ public class CsvLoader
             var cols = line.Split(';');
 
             var year = int.Parse(cols[0]);
+            var title = cols[1].Trim();
+            var studios = cols[2].Trim();
             var producers = cols[3];
-            var winner = cols[4] == "yes";
+            var winner = cols[4].Trim().Equals("yes", StringComparison.OrdinalIgnoreCase);
 
-            var movie = new Movie { Year = year, Winner = winner };
+            var movie = new Movie 
+            { 
+                Year = year, 
+                Title = title,
+                Studios = studios,
+                Winner = winner 
+            };
 
             var names = producers
                 .Replace(" and ", ",")
