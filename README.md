@@ -20,7 +20,7 @@ This project was developed as a technical challenge following the requirements d
 - The application reads a CSV file containing Golden Raspberry Awards data during startup.
 - All data is stored in an **in-memory database**, with no external dependencies required.
 - The API follows **REST maturity level 2 (Richardson)**.
-- **Only integration tests** are implemented, as required by the challenge specification.
+- **Only integration tests** are implemented.
 
 ---
 
