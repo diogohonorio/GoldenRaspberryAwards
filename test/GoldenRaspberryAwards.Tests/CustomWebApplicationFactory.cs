@@ -10,13 +10,14 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.ConfigureServices(services =>
         {
-            // Remove DbContext existente
+            // Remove existing DbContext
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
+
             if (descriptor != null)
                 services.Remove(descriptor);
 
-            // Adiciona banco InMemory exclusivo para testes
+            // Add in-memory database for tests
             services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseInMemoryDatabase("TestDb");
@@ -32,8 +33,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             var loader = scope.ServiceProvider.GetRequiredService<CsvLoader>();
             string csvPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources", "movielist.csv");
 
+            if (string.IsNullOrWhiteSpace(csvPath))
+                throw new ArgumentException("CSV file path was not provided.");
+
             if (!File.Exists(csvPath))
-                throw new FileNotFoundException("CSV not found.", csvPath);
+                throw new FileNotFoundException("CSV file not found.", csvPath);
+
+            if (!string.Equals(Path.GetExtension(csvPath), ".csv", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("The provided file is not a .csv file.");
+
+            var fileInfo = new FileInfo(csvPath);
+            if (fileInfo.Length == 0)
+                throw new InvalidOperationException("The CSV file is empty.");
+
+            var allLines = File.ReadAllLines(csvPath);
+            if (allLines.Length <= 1)
+                throw new InvalidOperationException("The CSV file does not contain any records to process.");
 
             loader.Load(csvPath);
         });

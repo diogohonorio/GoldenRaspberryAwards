@@ -12,8 +12,7 @@ public class GetProducersIntervalsHandler
         _service = service;
     }
 
-    public Task<ProducersIntervalResponse> HandleAsync(
-        CancellationToken cancellationToken = default)
+    public Task<ProducersIntervalResponse> HandleAsync(CancellationToken cancellationToken)
     {
         return Task.FromResult(_service.Calculate());
     }
